@@ -128,11 +128,11 @@ string MQTTDataProvider::getData(int i){
     char str_time[32];
     sprintf(str_time, "%ld", epochtime);
 
-    string json="{\n\"f\": 1,\n";                        
+    string json="{\"f\": 1,";                        
     json += "\"id\": \"";                                 
     json += deviceId;                                   
-    json += "\",\n";
-    json += "\"d\": [\n";                                
+    json += "\",";
+    json += "\"d\": [";                                
     
     size_t j=0; // resource counter - it is used to print or not to print the comma after }
     for( std::map<string,M2MResource*>::const_iterator it = resources.begin(); it != resources.end(); ++it )
@@ -154,33 +154,33 @@ string MQTTDataProvider::getData(int i){
           */
 
          j++;
-         json += "{\n";
+         json += "{";
          json += "\"";
          json += it->first;   //resource_path
-         json += "\": [\n";
+         json += "\": [";
              json += "{";
              json += "\"t\": ";
              json +=str_time;
-             json += ",\n";
+             json += ",";
 
-             json += "\"v\": {\n";
+             json += "\"v\": {";
              
              json += "\"";
              json += (it->second)->resource_type();   
              json += "\":";
              json += "299";   //value
              //json += (it->second)->get_value_string().c_str(); //value;
-             json += "\n}";
-         json += "}\n";
-         json += "]\n";
+             json += "}";
+         json += "}";
+         json += "]";
 
-         json += "}\n";
+         json += "}";
          if (resources.size() > j) json += ",";
-         json += "\n";
+         json += "";
          
     }
 
-    json += "]\n}\n";
+    json += "]}";
      
     printf(" ===> END getData() counter=%d \r\n", i);
     return json;
@@ -234,14 +234,14 @@ void MQTTDataProvider::run(){
          message.qos = QOS0;
          message.id = 123;
         
-         if (i > 3) continue;  // This is temporary statement to concentrate on TLS handshake issue
+         // if (i > 3) continue;  // This is temporary statement to concentrate on TLS handshake issue
                   
          strcpy(&message.topic[0], topic_1);
          
 
-         //string json=getData(i);  //temporary commented to concentrate on TLS handshake issue 
-         //string json=getDataOld(i); //old JSON format 
-         string json="X";  // just a placeholder
+         string json=getData(i);  //temporary commented to concentrate on TLS handshake issue 
+         // string json=getDataOld(i); //old JSON format 
+         //string json="X";  // just a placeholder
 
          if  (json.length() >= MAX_MQTT_PAYLOAD_SIZE){
             printf("ERROR json lengh > %d  \r\n", MAX_MQTT_PAYLOAD_SIZE);

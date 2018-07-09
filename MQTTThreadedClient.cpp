@@ -715,11 +715,16 @@ int MQTTThreadedClient::sendPublish(PubMessage& message)
      }
         
      topicString.cstring = (char*) &message.topic[0];
+     // printf("BEFORE MQTTSerialize_publish: strlen(sendbuf)=%d  MAX_MQTT_PACKET_SIZE=%d \r\n", strlen((const char*)sendbuf), MAX_MQTT_PACKET_SIZE);
+     // printf("BEFORE MQTTSerialize_publish: sendbuf = %s \r\n", sendbuf);
+     DBG("BEFORE MQTTSerialize_publish: msg.payload = %s \r\n", message.payload);
+     DBG("BEFORE MQTTSerialize_publish: strlen(msg.payload) = %d \r\n", strlen((const char*)message.payload));
+
      int len = MQTTSerialize_publish(sendbuf, MAX_MQTT_PACKET_SIZE, 0, message.qos, false, message.id,
               topicString, (unsigned char*) &message.payload[0], (int) message.payloadlen);
      if (len <= 0)
      {
-         DBG("Failed serializing message ...\r\n");
+         DBG("ERROR after MQTTSerialize_publish: Failed serializing message ...\r\n");
          return FAILURE;
      }
      

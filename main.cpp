@@ -235,14 +235,16 @@ void main_application(void)
         mcc_platform_do_wait(1000);
 
         if (!isMQTTstarted && mbedClient.is_client_registered()){ // now we can get DeviceID and start MQTT
-            isMQTTstarted = true;
+            
             printf("-----INSIDE !isMQTTstarted in main loop \r\n");
             const ConnectorClientEndpointInfo* endpoint = mbedClient.get_cloud_client().endpoint_info();
             const char* deviceId=endpoint->internal_endpoint_name.c_str(); 
 
             printf("---- 2. BEFORE calling MQTTDataProvider thread  resources.size()=%d \r\n", resources.size());
+
             MQTTDataProvider mqttDataProvider(deviceId, resources);
 
+            isMQTTstarted = true;
             // TBD: This is a loop, so will block execution of this main thread
             mqttDataProvider.run();
             printf("---- 2. AFTER calling MQTTDataProvider thread \r\n");
