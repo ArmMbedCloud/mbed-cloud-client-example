@@ -128,7 +128,7 @@ string MQTTDataProvider::getData(int i){
     char str_time[32];
     sprintf(str_time, "%ld", epochtime);
 
-    string json="{\"f\": 1,";                        
+    string json="{\"f\": \"1\",";                        
     json += "\"id\": \"";                                 
     json += deviceId;                                   
     json += "\",";
