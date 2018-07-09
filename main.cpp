@@ -16,14 +16,22 @@
 // limitations under the License.
 // ----------------------------------------------------------------------------
 
+
 #include "simplem2mclient.h"
-#ifdef TARGET_LIKE_MBED
+
 #include "mbed.h"
-#endif
+
 #include "application_init.h"
 #include "common_button_and_led.h"
 #include "blinky.h"
 
+#include "MQTTDataProvider.h"
+#include "mbed_cloud_dev_credentials.c"
+#include "base64.h"
+
+Thread mqttSender(osPriorityNormal); // there are optional args: stack_size, etc
+
+Serial pc(USBTX, USBRX);
 // event based LED blinker, controlled via pattern_resource
 static Blinky blinky;
 
@@ -31,11 +39,24 @@ static void main_application(void);
 
 int main(void)
 {
+    pc.baud(115200);
+    pc.printf("1...main() of data-cloud-client.cpp \r\n");
+
+/*  this code allow to skip Mbed Cloud Client; in this case in MQTTDataProvider.cpp change the line from easy_get_netif() to easy_connect
+            const char* deviceId="TODO"; //Consider to get Device Id from  mbedClient  
+            printf("---- BEFORE calling MQTTDataProvider thread \r\n");
+            MQTTDataProvider mqttDataProvider(deviceId);
+            mqttSender.start(mbed::callback(&mqttDataProvider, &MQTTDataProvider::run));
+            printf("---- AFTER calling MQTTDataProvider thread \r\n");
+*/
+
+
     mcc_platform_run_program(main_application);
 }
-
+ 
 // Pointers to the resources that will be created in main_application().
 static M2MResource* button_res;
+static M2MResource* button_res2;
 static M2MResource* pattern_res;
 
 // Pointer to mbedClient, used for calling close function.
@@ -109,8 +130,10 @@ void factory_reset(void *)
     }
 }
 
+
 void main_application(void)
 {
+    printf("2...main_application() \r\n");
     // https://github.com/ARMmbed/sd-driver/issues/93 (IOTMORF-2327)
     // SD-driver initialization can fails with bd->init() -5005. This wait will
     // allow the board more time to initialize.
@@ -166,6 +189,14 @@ void main_application(void)
     button_res = mbedClient.add_cloud_resource(3200, 0, 5501, "button_resource", M2MResourceInstance::INTEGER,
                               M2MBase::GET_ALLOWED, 0, true, NULL, (void*)button_notification_status_callback);
 
+    //const char *s="my value 1";
+    //button_res->update_value((unsigned char*)s, strlen(s));
+    //printf("Testing update_value(): New value=%s\r\n", button_res->get_value_string().c_str());
+
+    button_res2 = mbedClient.add_cloud_resource(3201, 1, 5500, "button_resource2", M2MResourceInstance::INTEGER,
+                              M2MBase::GET_ALLOWED, 0, true, NULL, (void*)button_notification_status_callback);
+
+
     // Create resource for led blinking pattern. Path of this resource will be: 3201/0/5853.
     pattern_res = mbedClient.add_cloud_resource(3201, 0, 5853, "pattern_resource", M2MResourceInstance::STRING,
                                M2MBase::GET_PUT_ALLOWED, "500:500:500:500", false, (void*)pattern_updated, NULL);
@@ -182,16 +213,44 @@ void main_application(void)
     mbedClient.add_cloud_resource(5000, 0, 2, "factory_reset", M2MResourceInstance::STRING,
                  M2MBase::POST_ALLOWED, NULL, false, (void*)factory_reset, NULL);
 
-    mbedClient.register_and_connect();
 
+    printf("-----BEFORE calling mbedClient.register_and_connect() \r\n");
+    mbedClient.register_and_connect();
+    printf("----AFTER calling mbedClient.register_and_connect()  \r\n");
+
+    map<string, M2MResource*> resources;
+    string name;
+
+    name=button_res->uri_path();  
+    resources[name]=button_res;
+
+    name=button_res2->uri_path();  
+    resources[name]=button_res2;
+
+    printf("-----BEFORE main loop name=%s \r\n", name.c_str());
+    bool isMQTTstarted=false;
     // Check if client is registering or registered, if true sleep and repeat.
     while (mbedClient.is_register_called()) {
-        static int button_count = 0;
-        mcc_platform_do_wait(100);
-        if (mcc_platform_button_clicked()) {
-            button_res->set_value(++button_count);
+
+        mcc_platform_do_wait(1000);
+
+        if (!isMQTTstarted && mbedClient.is_client_registered()){ // now we can get DeviceID and start MQTT
+            isMQTTstarted = true;
+            printf("-----INSIDE !isMQTTstarted in main loop \r\n");
+            const ConnectorClientEndpointInfo* endpoint = mbedClient.get_cloud_client().endpoint_info();
+            const char* deviceId=endpoint->internal_endpoint_name.c_str(); 
+
+            printf("---- 2. BEFORE calling MQTTDataProvider thread  resources.size()=%d \r\n", resources.size());
+            MQTTDataProvider mqttDataProvider(deviceId, resources);
+
+            // TBD: This is a loop, so will block execution of this main thread
+            mqttDataProvider.run();
+            printf("---- 2. AFTER calling MQTTDataProvider thread \r\n");
+
         }
     }
+
+    printf("----AFTER calling is_register_called() \r\n");
 
     // Client unregistered, exit program.
 }
