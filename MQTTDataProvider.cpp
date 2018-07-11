@@ -205,7 +205,13 @@ void MQTTDataProvider::run(){
       // DER format
       MQTTThreadedClient mqtt(network, (const unsigned char*)(MBED_CLOUD_DEV_LWM2M_SERVER_ROOT_CA_CERTIFICATE), (const unsigned char*)MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_CERTIFICATE, (const unsigned char*)MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_PRIVATE_KEY, isDER);
 
-      mqtt.ssl_ca_len          = sizeof(MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE);
+      printf ("MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE sizeof=  %d \r\n", sizeof(MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE));  // do not use it!
+      printf (" MBED_CLOUD_DEV_LWM2M_SERVER_ROOT_CA_CERTIFICATE    sizeof=  %d \r\n", sizeof(MBED_CLOUD_DEV_LWM2M_SERVER_ROOT_CA_CERTIFICATE));  //   use it!
+
+      //is it valid sizeof in next line
+      //mqtt.ssl_ca_len          = sizeof(MBED_CLOUD_DEV_BOOTSTRAP_SERVER_ROOT_CA_CERTIFICATE);
+      mqtt.ssl_ca_len          = sizeof(MBED_CLOUD_DEV_LWM2M_SERVER_ROOT_CA_CERTIFICATE);
+
       mqtt.ssl_client_cert_len = sizeof(MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_CERTIFICATE);
       mqtt.ssl_client_pkey_len = sizeof(MBED_CLOUD_DEV_BOOTSTRAP_DEVICE_PRIVATE_KEY);
 
